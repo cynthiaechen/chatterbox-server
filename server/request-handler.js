@@ -11,20 +11,19 @@ this file and include it in basic-server.js so that it actually works.
 *Hint* Check out the node module documentation at http://nodejs.org/api/modules.html.
 
 **************************************************************/
-var data = {};
-var results = [];
-var fs = require('fs');
+var data = {'results': []};
+// var fs = require('fs');
 
 // function to write to file system
   // check if file exists (file.exists)
     // append message to file (file.writeFile)
     // close file
   // call error callback
-var writeToFileSystem =  function(url, username, message){
-  fs.writeFile('./classes/room1', username + message, function() {
-    console.log('yay! we wrote a file!')
-  });
-};
+// var writeToFileSystem =  function(url, username, message){
+//   fs.writeFile('./classes/room1', username + message, function() {
+//     console.log('yay! we wrote a file!')
+//   });
+// };
 
 
 var requestHandler = function(request, response) {
@@ -36,7 +35,6 @@ var requestHandler = function(request, response) {
   //
   // Documentation for both request and response can be found in the HTTP section at
   // http://nodejs.org/documentation/api/
-  console.log('_______> request', request);
 
   // Do some basic logging.
   //
@@ -49,36 +47,37 @@ var requestHandler = function(request, response) {
   //if file doesn't exist, return statusCode = 404
   //if file does exist, open file and append json data to it
 
-  var point = fs.open('classes/messages', 'a');
+  // var point = fs.open('classes/messages', 'a');
   // if(point )
 
   // The outgoing status.
   var statusCode = 200;
 
+  console.log(request.url);
+  var urlReg = /classes\.*/;
+
+  if (!request.url.match(urlReg)) {
+    statusCode = 404;
+  }
+
   //****
   var requestMethod = request.method;
-  if (requestMethod === 'GET') {
-    //find classes/messsages file
-    //get data
-  }
+  var mes = '';
+
   if (requestMethod === 'POST') {
-    statusCode = 201; //set status code to 201
-    var messages = {};
-    var reqUrl = request.url.substring(1);
-    console.log('request url:' + reqUrl);
-    fs.exists(reqUrl, function() {
-      console.log('hi mom! this file exists!');
-      writeToFileSystem(reqUrl, request._postData.username, request._postData.message);
+    statusCode = 201;
+    request.on('data', function(chunk) {
+      mes += chunk;
     });
-    // messages['username'] = request._postData.username; //
-    // messages['message'] = request._postData.message;
-    // console.log(messages.username);
-    // results.push(messages);
+    request.on('end', function(end) {
+      var parsed = JSON.parse(mes);
+      data.results.push({
+        username: parsed.username,
+        message: parsed.message
+      });
+    });
+    console.log(data);
   }
-
-  console.log(messages);
-
-  
 
   // See the note below about CORS headers.
   var headers = defaultCorsHeaders;
@@ -100,7 +99,7 @@ var requestHandler = function(request, response) {
   //
   // Calling .end "flushes" the response's internal buffer, forcing
   // node to actually send all the data over to the client.
-  data.results = results;
+  // data.results = results;
   response.end(JSON.stringify(data));
   // response.end("Hello, World!");
 };
