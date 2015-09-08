@@ -13,6 +13,7 @@ this file and include it in basic-server.js so that it actually works.
 **************************************************************/
 var data = {'results': []};
 var fs = require('fs');
+var readline = require('readline');
 
 var index = fs.readFileSync('../client/index.html');
 var jq = fs.readFileSync('../client/bower_components/jquery/dist/jquery.js');
@@ -37,10 +38,6 @@ var requestHandler = function(request, response) {
   // debugging help, but you should always be careful about leaving stray
   // console.logs in your code.
   console.log("Serving request type " + request.method + " for url " + request.url);
-
-  //look up request.url and see if file with that url exists
-  //if file doesn't exist, return statusCode = 404
-  //if file does exist, open file and append json data to it
 
   if (request.url === '/') {
     response.writeHeader(200, {'Content-Type': 'text/html'});
@@ -81,8 +78,47 @@ var requestHandler = function(request, response) {
   
   if (request.url.match(mesReg) && request.method === 'GET') {
     response.writeHeader(200, {'Content-Type': 'text/json'});
-    response.write(JSON.stringify(data));
-    response.end();
+    var mes = '';
+    //split query parameters from url string into key value pairs 
+    var paths = request.url.replace(/.*\?/, '');
+    var reqParams = paths.split('&');
+    var reqFilters = [];
+    for (var i = 0; i < reqParams.length; i++) {
+      reqFilters.push(reqParams[i].split('='));
+    }
+
+    //check if order is in query parameter (need to check more query parameters...)
+    var order = false;
+    reqFilters.forEach(function(param){
+      if(param[0] === 'order'){
+        order = param[1];
+      }
+    });
+
+    //create read stream
+    var rl = readline.createInterface({
+      input: fs.createReadStream('classes/messages')
+    });
+    //read each line into buffer
+    var out = {results: []};
+    rl.on('line', function(line) {
+      out.results.push(JSON.parse(line));
+    });
+
+    // listen for end of read stream and on close, sort by (if query parameters present)
+    rl.on('close', function(){
+      if(order){
+        out.results.sort(function(a,b){
+          if (b.createdAt > a.createdAt) {
+            return 1;
+          } else {
+            return -1;
+          }
+        });
+      }
+      response.write(JSON.stringify(out));
+      response.end();
+    });
   }
 
   if (request.url.match(mesReg) && request.method === 'POST') {
@@ -93,45 +129,16 @@ var requestHandler = function(request, response) {
     });
     request.on('end', function() {
       var parsed = JSON.parse(mes);
-      console.log('PARSED MESSAGE -------->>>>>>', parsed);
-      data.results.push({
-        username: parsed.username,
-        text: parsed.text,
-        id: Math.floor(Math.random() * 1000)
-      });
+      parsed['createdAt'] = new Date();
+      parsed['id'] = Math.floor(Math.random() * 1000);
+      mes = JSON.stringify(parsed);
     });
-    console.log(data);
+    fs.open('classes/messages', 'a', function(err, fd) {
+      fs.write(fd, mes + ' \n');
+      fs.close(fd);
+    });
     response.end();
   }
-
-  // The outgoing status.
-  var statusCode = 200;
-
-  console.log(request.url);
-  var urlReg = /classes\.*/;
-
-  if (!request.url.match(urlReg)) {
-    statusCode = 404;
-  }
-
-  //****
-  var requestMethod = request.method;
-  var mes = '';
-
-  // if (requestMethod === 'POST') {
-  //   statusCode = 201;
-  //   request.on('data', function(chunk) {
-  //     mes += chunk;
-  //   });
-  //   request.on('end', function(end) {
-  //     var parsed = JSON.parse(mes);
-  //     data.results.push({
-  //       username: parsed.username,
-  //       message: parsed.message
-  //     });
-  //   });
-
-  // }
 
   // See the note below about CORS headers.
   var headers = defaultCorsHeaders;
@@ -153,9 +160,7 @@ var requestHandler = function(request, response) {
   //
   // Calling .end "flushes" the response's internal buffer, forcing
   // node to actually send all the data over to the client.
-  // data.results = results;
-  // response.end(JSON.stringify(data));
-  // response.end("Hello, World!");
+
 };
 
 // These headers will allow Cross-Origin Resource Sharing (CORS).
