@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Chatterbox</title>
+  <link href="styles/styles.css" rel="stylesheet" />
+  <script type="text/javascript" src="bower_components/jquery/dist/jquery.js"></script>
+  <script type="text/javascript" src="bower_components/underscore/underscore.js"></script>
+  <script type="text/javascript" src="bower_components/backbone/backbone.js"></script>
+  <script type="text/javascript" src="app.js"></script>
+</head>
+<body>
+<div id="main">
+  <h1>chatter<em>box</em></h1>
+  <!-- <div class="spinner"><img src="images/spiffygif_46x46.gif"></div> -->
+    <form action="#" id="send" method="post">
+      <input type="text" name="message" id="message"/>
+      <input type="submit" name="submit" class="submit"/>
+    </form>
+  </div>
+  <div id="chats"></div>
+  <script type="text/javascript">
+  var user = user || prompt('What is your name?');
+  var messages = new Messages();
+  var messagesView = new MessagesView({el: $('#chats'), collection: messages});
+  var formView = new FormView({el: $('#main'), collection: messages});
+  setInterval(messages.loadMsgs.bind(messages), 1000);
+  messages.loadMsgs();
+
+  
+
+
+  </script>
+</body>
+</html>

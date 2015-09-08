@@ -12,19 +12,14 @@ this file and include it in basic-server.js so that it actually works.
 
 **************************************************************/
 var data = {'results': []};
-// var fs = require('fs');
+var fs = require('fs');
 
-// function to write to file system
-  // check if file exists (file.exists)
-    // append message to file (file.writeFile)
-    // close file
-  // call error callback
-// var writeToFileSystem =  function(url, username, message){
-//   fs.writeFile('./classes/room1', username + message, function() {
-//     console.log('yay! we wrote a file!')
-//   });
-// };
-
+var index = fs.readFileSync('../client/index.html');
+var jq = fs.readFileSync('../client/bower_components/jquery/dist/jquery.js');
+var bb = fs.readFileSync('../client/bower_components/backbone/backbone.js');
+var us = fs.readFileSync('../client/bower_components/underscore/underscore.js');
+var app = fs.readFileSync('../client/app.js');
+var css = fs.readFileSync('../client/styles/styles.css');
 
 var requestHandler = function(request, response) {
   // Request and Response come from node's http module.
@@ -47,8 +42,67 @@ var requestHandler = function(request, response) {
   //if file doesn't exist, return statusCode = 404
   //if file does exist, open file and append json data to it
 
-  // var point = fs.open('classes/messages', 'a');
-  // if(point )
+  if (request.url === '/') {
+    response.writeHeader(200, {'Content-Type': 'text/html'});
+    response.write(index);
+    response.end();
+  }
+
+  if (request.url === '/bower_components/jquery/dist/jquery.js') {
+    response.writeHeader(200, {'Content-Type': 'text/javascript'});
+    response.write(jq);
+    response.end();
+  }
+
+  if (request.url === '/bower_components/underscore/underscore.js') {
+    response.writeHeader(200, {'Content-Type': 'text/javascript'});
+    response.write(us);
+    response.end();
+  }
+
+  if (request.url === '/bower_components/backbone/backbone.js') {
+    response.writeHeader(200, {'Content-Type': 'text/javascript'});
+    response.write(bb);
+    response.end();
+  }
+
+  if (request.url === '/app.js') {
+    response.writeHeader(200, {'Content-Type': 'text/javascript'});
+    response.write(app);
+    response.end();
+  }
+
+  if (request.url === '/styles/styles.css') {
+    response.writeHeader(200, {'Content-Type': 'text/css'});
+    response.write(css);
+    response.end();
+  }
+  var mesReg = /\/messages\/.*/;
+  
+  if (request.url.match(mesReg) && request.method === 'GET') {
+    response.writeHeader(200, {'Content-Type': 'text/json'});
+    response.write(JSON.stringify(data));
+    response.end();
+  }
+
+  if (request.url.match(mesReg) && request.method === 'POST') {
+    var mes = '';
+    response.writeHeader(201, {'Content-Type': 'text/json'});
+    request.on('data', function(chunk) {
+      mes += chunk;
+    });
+    request.on('end', function() {
+      var parsed = JSON.parse(mes);
+      console.log('PARSED MESSAGE -------->>>>>>', parsed);
+      data.results.push({
+        username: parsed.username,
+        text: parsed.text,
+        id: Math.floor(Math.random() * 1000)
+      });
+    });
+    console.log(data);
+    response.end();
+  }
 
   // The outgoing status.
   var statusCode = 200;
@@ -64,20 +118,20 @@ var requestHandler = function(request, response) {
   var requestMethod = request.method;
   var mes = '';
 
-  if (requestMethod === 'POST') {
-    statusCode = 201;
-    request.on('data', function(chunk) {
-      mes += chunk;
-    });
-    request.on('end', function(end) {
-      var parsed = JSON.parse(mes);
-      data.results.push({
-        username: parsed.username,
-        message: parsed.message
-      });
-    });
-    console.log(data);
-  }
+  // if (requestMethod === 'POST') {
+  //   statusCode = 201;
+  //   request.on('data', function(chunk) {
+  //     mes += chunk;
+  //   });
+  //   request.on('end', function(end) {
+  //     var parsed = JSON.parse(mes);
+  //     data.results.push({
+  //       username: parsed.username,
+  //       message: parsed.message
+  //     });
+  //   });
+
+  // }
 
   // See the note below about CORS headers.
   var headers = defaultCorsHeaders;
@@ -86,11 +140,11 @@ var requestHandler = function(request, response) {
   //
   // You will need to change this if you are sending something
   // other than plain text, like JSON or HTML.
-  headers['Content-Type'] = "text/plain";
+  // headers['Content-Type'] = "text/plain";
 
   // .writeHead() writes to the request line and headers of the response,
   // which includes the status and all headers.
-  response.writeHead(statusCode, headers);
+  // response.writeHead(statusCode, headers);
 
   // Make sure to always call response.end() - Node may not send
   // anything back to the client until you do. The string you pass to
@@ -100,7 +154,7 @@ var requestHandler = function(request, response) {
   // Calling .end "flushes" the response's internal buffer, forcing
   // node to actually send all the data over to the client.
   // data.results = results;
-  response.end(JSON.stringify(data));
+  // response.end(JSON.stringify(data));
   // response.end("Hello, World!");
 };
 

@@ -1,5 +1,5 @@
 var Message = Backbone.Model.extend({
-  url: 'http://127.0.0.1:3000/',
+  url: 'http://127.0.0.1:3000/messages/',
   defaults: {
     username: '',
     text: ''
@@ -9,7 +9,7 @@ var Message = Backbone.Model.extend({
 var Messages = Backbone.Collection.extend({
 
   model: Message,
-  url: 'http://127.0.0.1:3000/',
+  url: 'http://127.0.0.1:3000/messages/',
 
   loadMsgs: function() {
     this.fetch({data: { order: '-createdAt' }});
@@ -42,7 +42,7 @@ var FormView = Backbone.View.extend({
 
     var $text = this.$('#message');
     this.collection.create({
-      username: window.location.search.substr(10),
+      username: user,
       text: $text.val()
     });
     $text.val('');
@@ -66,7 +66,7 @@ var MessageView = Backbone.View.extend({
     this.model.on('change', this.render, this);
   },
 
-  template: _.template('<div class="chat" data-id="<%- objectId %>"> \
+  template: _.template('<div class="chat" data-id=<%= id %> > \
                           <div class="user"><%- username %></div> \
                           <div class="text"><%- text %></div> \
                         </div>'),
@@ -77,6 +77,7 @@ var MessageView = Backbone.View.extend({
   }
 
 });
+
 
 var MessagesView = Backbone.View.extend({
 
@@ -90,10 +91,10 @@ var MessagesView = Backbone.View.extend({
   },
 
   renderMessage: function(message) {
-    if (!this.onscreenMessages[message.get('objectId')]) {
+    if (!this.onscreenMessages[message.get('id')]) {
       var messageView = new MessageView({model: message});
       this.$el.prepend(messageView.render());
-      this.onscreenMessages[message.get('objectId')] = true;
+      this.onscreenMessages[message.get('id')] = true;
     }
   }
 
